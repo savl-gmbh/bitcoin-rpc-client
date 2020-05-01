@@ -31,4 +31,4 @@ jobs:
         nexus_username: ${{ secrets.nexus_username }}
         nexus_password: ${{ secrets.nexus_password }}
         maven_goals_phases: release:prepare deploy
-        maven_args: -Dmaven.test.skip=true --batch-mode
+        maven_args: --batch-mode -Dmaven.test.skip=true
