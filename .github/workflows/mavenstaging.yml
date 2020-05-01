@@ -1,0 +1,24 @@
+name: Test PR
+
+on:
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up JDK
+      uses: actions/setup-java@v1
+      with:
+        java-version: 11
+    - name: Test
+      run: mvn clean test
+      env:
+        BTC_NODE_HOST: ${{ secrets.BTC_NODE_HOST }}
+        BTC_NODE_PORT: ${{ secrets.BTC_NODE_PORT }}
+        BTC_NODE_RPC_PASSWORD: ${{ secrets.BTC_NODE_RPC_PASSWORD }}
+        BTC_NODE_RPC_USER: ${{ secrets.BTC_NODE_RPC_USER }}
+
