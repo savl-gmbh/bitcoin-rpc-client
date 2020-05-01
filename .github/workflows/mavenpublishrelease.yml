@@ -31,4 +31,8 @@ jobs:
         nexus_username: ${{ secrets.nexus_username }}
         nexus_password: ${{ secrets.nexus_password }}
         maven_goals_phases: release:prepare deploy
-        maven_args: -Dmaven.test.skip=true
+      env:
+        BTC_NODE_HOST: ${{ secrets.BTC_NODE_HOST }}
+        BTC_NODE_PORT: ${{ secrets.BTC_NODE_PORT }}
+        BTC_NODE_RPC_PASSWORD: ${{ secrets.BTC_NODE_RPC_PASSWORD }}
+        BTC_NODE_RPC_USER: ${{ secrets.BTC_NODE_RPC_USER }}
