@@ -1,8 +1,6 @@
-name: Publish to Nexus
+name: Publish snapshot to Nexus
 
 on:
-  release:
-    types: [created]
   push:
     branches:
       - master
