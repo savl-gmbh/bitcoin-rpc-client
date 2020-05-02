@@ -25,6 +25,11 @@ jobs:
         BTC_NODE_RPC_USER: ${{ secrets.BTC_NODE_RPC_USER }}
     - name: Package
       run: mvn package -Dmaven.test.skip=true
+    - name: Extract version from tag
+      id: tag
+      run: echo ::set-output name=VERSION::$(echo $GITHUB_REF | cut -d / -f 3)
+    - name: Set version
+      run: mvn org.codehaus.mojo:versions-maven-plugin:2.1:set -DskipTests=true -DnewVersion=${{ steps.tag.outputs.VERSION }}
     - name: Release
       uses: samuelmeuli/action-maven-publish@v1
       with:
@@ -32,7 +37,6 @@ jobs:
         gpg_passphrase: ${{ secrets.gpg_passphrase }}
         nexus_username: ${{ secrets.nexus_username }}
         nexus_password: ${{ secrets.nexus_password }}
-        maven_goals_phases: release:prepare deploy
       env:
         BTC_NODE_HOST: ${{ secrets.BTC_NODE_HOST }}
         BTC_NODE_PORT: ${{ secrets.BTC_NODE_PORT }}
