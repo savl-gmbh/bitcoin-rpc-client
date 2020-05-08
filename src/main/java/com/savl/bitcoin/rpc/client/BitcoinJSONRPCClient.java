@@ -276,13 +276,11 @@ public class BitcoinJSONRPCClient implements BitcoindRpcClient {
 
     @SuppressWarnings("serial")
     protected byte[] prepareRequest(final String method, final Object... params) {
-        String request = gson.toJson(new LinkedHashMap<String, Object>() {
-            {
-                put("method", method);
-                put("params", params);
-                put("id", "1");
-            }
-        }, Map.class);
+        Map<String, Object> mappedParams = new LinkedHashMap<>();
+        mappedParams.put("method", method);
+        mappedParams.put("params", params);
+        mappedParams.put("id", "1");
+        String request = gson.toJson(mappedParams, Map.class);
         return request.getBytes(QUERY_CHARSET);
     }
 
@@ -290,13 +288,15 @@ public class BitcoinJSONRPCClient implements BitcoindRpcClient {
     protected byte[] prepareBatchRequest(final String method, final List<BatchParam> paramsList) {
         Type batchRequestType = new TypeToken<ArrayList<Map<String, Object>>>() {
         }.getType();
-        String request = gson.toJson(paramsList.stream().map(batchParam -> new LinkedHashMap<String, Object>() {
-            {
-                put("method", method);
-                put("params", batchParam.params);
-                put("id", batchParam.id);
-            }
-        }).collect(Collectors.toList()), batchRequestType);
+        List<Map<String, Object>> mappedParamList = paramsList.stream()
+                .map(batchParam -> {
+                    Map<String, Object> mappedParams = new LinkedHashMap<>();
+                    mappedParams.put("method", method);
+                    mappedParams.put("params", batchParam.params);
+                    mappedParams.put("id", batchParam.id);
+                    return mappedParams;
+                }).collect(Collectors.toList());
+        String request = gson.toJson(mappedParamList, batchRequestType);
         return request.getBytes(QUERY_CHARSET);
     }
 
@@ -431,25 +431,25 @@ public class BitcoinJSONRPCClient implements BitcoindRpcClient {
     @Override
     @SuppressWarnings("serial")
     public String createRawTransaction(List<TxInput> inputs, List<TxOutput> outputs) throws GenericRpcException {
-        List<Map<String, ?>> pInputs = new ArrayList<>();
+        List<Map<String, Object>> pInputs = new ArrayList<>();
 
         for (final TxInput txInput : inputs) {
-            pInputs.add(new LinkedHashMap<String, Object>() {
-                {
-                    put("txid", txInput.txid());
-                    put("vout", txInput.vout());
-                }
-            });
+            Map<String, Object> pInput = new LinkedHashMap<>();
+
+            pInput.put("txid", txInput.txid());
+            pInput.put("vout", txInput.vout());
+            pInputs.add(pInput);
         }
 
-        Map<String, Object> pOutputs = new LinkedHashMap<>();
-
+        List<Map<String, Object>> pOutputs = new ArrayList<>();
         for (TxOutput txOutput : outputs) {
-            pOutputs.put(txOutput.address(), txOutput.amount());
+            Map<String, Object> pOutput = new LinkedHashMap<>();
+            pOutput.put(txOutput.address(), txOutput.amount());
             if (txOutput.data() != null) {
                 String hex = HexCoder.encode(txOutput.data());
-                pOutputs.put("data", hex);
+                pOutput.put("data", hex);
             }
+            pOutputs.add(pOutput);
         }
 
         return (String) query("createrawtransaction", pInputs, pOutputs);
@@ -865,23 +865,21 @@ public class BitcoinJSONRPCClient implements BitcoindRpcClient {
     @SuppressWarnings({"serial", "unchecked"})
     @Deprecated
     public String signRawTransaction(String hex, List<? extends TxInput> inputs, List<String> privateKeys, String sigHashType) {
-        List<Map<String, ?>> pInputs = null;
+        List<Map<String, Object>> pInputs = null;
 
         if (inputs != null) {
             pInputs = new ArrayList<>();
             for (final TxInput txInput : inputs) {
-                pInputs.add(new LinkedHashMap<String, Object>() {
-                    {
-                        put("txid", txInput.txid());
-                        put("vout", txInput.vout());
-                        put("scriptPubKey", txInput.scriptPubKey());
-                        if (txInput instanceof ExtendedTxInput) {
-                            ExtendedTxInput extin = (ExtendedTxInput) txInput;
-                            put("redeemScript", extin.redeemScript());
-                            put("amount", extin.amount());
-                        }
-                    }
-                });
+                Map<String, Object> pInput = new LinkedHashMap<>();
+                pInput.put("txid", txInput.txid());
+                pInput.put("vout", txInput.vout());
+                pInput.put("scriptPubKey", txInput.scriptPubKey());
+                if (txInput instanceof ExtendedTxInput) {
+                    ExtendedTxInput extin = (ExtendedTxInput) txInput;
+                    pInput.put("redeemScript", extin.redeemScript());
+                    pInput.put("amount", extin.amount());
+                }
+                pInputs.add(pInput);
             }
         }
 
@@ -899,20 +897,18 @@ public class BitcoinJSONRPCClient implements BitcoindRpcClient {
         if (prevTxs != null) {
             prevTxsJson = new ArrayList<>();
             for (TxInput txInput : prevTxs) {
-                prevTxsJson.add(new LinkedHashMap<String, Object>() {
-                    {
-                        put("txid", txInput.txid());
-                        put("vout", txInput.vout());
-                        put("scriptPubKey", txInput.scriptPubKey());
-                        put("amount", txInput.amount());
+                Map<String, Object> prevTx = new LinkedHashMap<>();
+                prevTx.put("txid", txInput.txid());
+                prevTx.put("vout", txInput.vout());
+                prevTx.put("scriptPubKey", txInput.scriptPubKey());
+                prevTx.put("amount", txInput.amount());
 
-                        if (txInput instanceof ExtendedTxInput) {
-                            ExtendedTxInput extIn = (ExtendedTxInput) txInput;
-                            put("redeemScript", extIn.redeemScript());
-                            put("witnessScript", extIn.witnessScript());
-                        }
-                    }
-                });
+                if (txInput instanceof ExtendedTxInput) {
+                    ExtendedTxInput extIn = (ExtendedTxInput) txInput;
+                    prevTx.put("redeemScript", extIn.redeemScript());
+                    prevTx.put("witnessScript", extIn.witnessScript());
+                }
+                prevTxsJson.add(prevTx);
             }
         }
 
@@ -1047,7 +1043,7 @@ public class BitcoinJSONRPCClient implements BitcoindRpcClient {
     }
 
     /**
-     * @param node    example: "192.168.0.6:8333"
+     * @param node example: "192.168.0.6:8333"
      * @param command must be either "add", "remove" or "onetry"
      * @throws GenericRpcException if failed
      */
