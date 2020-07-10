@@ -52,6 +52,7 @@ import com.savl.bitcoin.rpc.client.api.tx.TxInput;
 import com.savl.bitcoin.rpc.client.api.tx.TxOut;
 import com.savl.bitcoin.rpc.client.api.tx.TxOutSetInfo;
 import com.savl.bitcoin.rpc.client.api.tx.TxOutput;
+import com.savl.bitcoin.rpc.client.api.tx.UtxoSet;
 import com.savl.bitcoin.rpc.client.config.RpcClientConfig;
 import com.savl.bitcoin.rpc.client.exceptions.BitcoinRPCException;
 import com.savl.bitcoin.rpc.client.exceptions.GenericRpcException;
@@ -80,12 +81,14 @@ import java.nio.file.Path;
 import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -100,6 +103,9 @@ public class BitcoinJSONRPCClient implements BitcoindRpcClient {
     public static final URL DEFAULT_JSONRPC_TESTNET_URL;
     public static final URL DEFAULT_JSONRPC_REGTEST_URL;
     public static final Charset QUERY_CHARSET = Charset.forName("ISO8859-1");
+    public static final int CONNECT_TIMEOUT = (int) TimeUnit.MINUTES.toMillis(1);
+    public static final int READ_TIMEOUT = (int) TimeUnit.MINUTES.toMillis(5);
+
     private static final Logger LOGGER = Logger.getLogger(BitcoindRpcClient.class.getPackage().getName());
     private Gson gson;
 
@@ -399,6 +405,9 @@ public class BitcoinJSONRPCClient implements BitcoindRpcClient {
 
             conn.setDoOutput(true);
             conn.setDoInput(true);
+
+            conn.setConnectTimeout(CONNECT_TIMEOUT);
+            conn.setReadTimeout(READ_TIMEOUT);
 
             if (conn instanceof HttpsURLConnection) {
                 if (hostnameVerifier != null)
@@ -957,6 +966,12 @@ public class BitcoinJSONRPCClient implements BitcoindRpcClient {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
+    public List<String> generateToAddress(int numBlocks, String address, long maxTries) throws BitcoinRPCException {
+        return (List<String>) query("generatetoaddress", numBlocks, address, maxTries);
+    }
+
+    @Override
     public BigDecimal estimateFee(int nBlocks) throws GenericRpcException {
         return (BigDecimal) query("estimatefee", nBlocks);
     }
@@ -1180,6 +1195,54 @@ public class BitcoinJSONRPCClient implements BitcoindRpcClient {
     @SuppressWarnings("unchecked")
     public List<AddressUtxo> getAddressUtxo(String address) {
         return new AddressUtxoListWrapper((List<Map<String, ?>>) query("getaddressutxos", address));
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public UtxoSet scanTxOutSet(List<ScanObject> scanObjects) throws GenericRpcException {
+
+        List<Map<String, Object>>  param = new ArrayList<>();
+        for (ScanObject obj : scanObjects) {
+            Map<String, Object> map = new HashMap<String, Object>();
+            map.put("desc", obj.getDescriptor());
+            map.put("range", obj.getRange());
+            param.add(map);
+        }
+        UtxoSetWrapper utxoWrapper = new UtxoSetWrapper((Map<String, ?>) query("scantxoutset", "start",
+                param));
+        return utxoWrapper;
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public Integer scanTxOutSetStatus() throws GenericRpcException {
+        Map<String, ?> result = (Map<String, ?>) query("scantxoutset", "status");
+        if (result != null && result.containsKey("progress")) {
+            int progress = ((Long) result.get("progress")).intValue();
+            return progress;
+        } else {
+            return null;
+        }
+    }
+
+    @Override
+    public Boolean abortScanTxOutSet() throws GenericRpcException {
+        return (Boolean) query("scantxoutset", "abort");
+    }
+
+    @Override
+    public UtxoSet scanTxOutSetAddresses(List<String> addresses) throws GenericRpcException {
+        List<ScanObject> list = new ArrayList<>();
+        for (String addr : addresses) {
+            list.add(new ScanObject("addr(" + addr  + ")", null));
+        }
+        return scanTxOutSet(list);
+    }
+
+    @Override
+    public UtxoSet scanTxOutSetPubKey(String pubkey, int range) throws GenericRpcException {
+        ScanObject scanObj = new ScanObject("combo(" + pubkey  + ")", range);
+        return scanTxOutSet(Arrays.asList(scanObj));
     }
 
 }
