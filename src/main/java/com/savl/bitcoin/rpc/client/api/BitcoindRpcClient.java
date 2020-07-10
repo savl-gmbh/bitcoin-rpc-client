@@ -20,6 +20,7 @@
  */
 package com.savl.bitcoin.rpc.client.api;
 
+import com.savl.bitcoin.rpc.client.ScanObject;
 import com.savl.bitcoin.rpc.client.api.address.AddressInfo;
 import com.savl.bitcoin.rpc.client.api.address.AddressValidationResult;
 import com.savl.bitcoin.rpc.client.api.address.ReceivedAddress;
@@ -31,6 +32,7 @@ import com.savl.bitcoin.rpc.client.api.tx.TxInput;
 import com.savl.bitcoin.rpc.client.api.tx.TxOut;
 import com.savl.bitcoin.rpc.client.api.tx.TxOutSetInfo;
 import com.savl.bitcoin.rpc.client.api.tx.TxOutput;
+import com.savl.bitcoin.rpc.client.api.tx.UtxoSet;
 import com.savl.bitcoin.rpc.client.exceptions.BitcoinRPCException;
 import com.savl.bitcoin.rpc.client.exceptions.GenericRpcException;
 import com.savl.bitcoin.rpc.client.util.SignatureHashType;
@@ -247,6 +249,17 @@ public interface BitcoindRpcClient {
      * @return hashes of blocks generated
      */
     List<String> generateToAddress(int numBlocks, String address) throws BitcoinRPCException;
+
+    /**
+     * The generatetoaddress RPC mines blocks immediately to a specified address.
+     *
+     * @param numBlocks The number of blocks to generate.
+     * @param address The address to send the newly generated Bitcoin to
+     * @param maxTries The maximum number of iterations that are tried to create the requested number of blocks.
+     *
+     * @see <a href="https://bitcoin.org/en/developer-reference#generatetoaddress">generatetoaddress</a>
+     */
+    List<String> generateToAddress(int numBlocks, String address, long maxTries) throws BitcoinRPCException;
 
     /*
      * Mining
@@ -1203,6 +1216,76 @@ public interface BitcoindRpcClient {
      * See <a href="https://bitcoin.org/en/developer-reference#walletpassphrase">walletpassphrase</a>
      */
     void walletPassPhrase(String passPhrase, long timeOut);
+
+
+    /**
+     * The scantxoutset RPC scans the unspent transaction output set for entries that match certain output descriptors.
+     * <p>
+     * Examples of output descriptors are:
+     * <ul>
+     <li>addr(&lt;address&gt;})                     Outputs whose scriptPubKey corresponds to the specified address (does not include P2PK)</li>
+     <li>raw(&lt;hex script&gt;)                    Outputs whose scriptPubKey equals the specified hex scripts</li>
+     <li>combo(&lt;pubkey&gt;)                      P2PK, P2PKH, P2WPKH, and P2SH-P2WPKH outputs for the given pubkey</li>
+     <li>pkh(&lt;pubkey&gt;)                        P2PKH outputs for the given pubkey</li>
+     <li>sh(multi(&lt;n&gt;,&lt;pubkey&gt;,&lt;pubkey&gt;,...)) P2SH-multisig outputs for the given threshold and pubkeys</li>
+     </ul>
+     *
+     * In the above, <pubkey> either refers to a fixed public key in hexadecimal notation, or to an xpub/xprv optionally followed by one
+     * or more path elements separated by "/", and optionally ending in "/*" (unhardened), or "/*'" or "/*h" (hardened) to specify all
+     * unhardened or hardened child keys.
+     * In the latter case, a range needs to be specified by below if different from 1000.
+     * For more information on output descriptors, see the documentation in the doc/descriptors.md file.
+     * @see <a href="https://bitcoin.org/en/developer-reference#scantxoutset">scantxoutset</a>
+     *
+     * @param scanObjects Output descriptors
+     * @return
+     */
+    UtxoSet scanTxOutSet(List<ScanObject> scanObjects);
+
+    /**
+     * Returns the status for progress report (in %) of the current scan.
+     *
+     * @see #scanTxOutSet(List)
+     * @return
+     * @throws GenericRpcException
+     */
+    Integer scanTxOutSetStatus() throws GenericRpcException;
+
+    /**
+     * Aborts the current scan
+     *
+     * @see #scanTxOutSet(List)
+     * @return true when abort was successful
+     * @throws GenericRpcException
+     */
+    Boolean abortScanTxOutSet() throws GenericRpcException;
+
+    /**
+     * Convenience method for retrieving UTXO SET for a list of addresses.
+     * (Outputs whose scriptPubKey corresponds to the specified address (does not include P2PK))
+     * @see #scanTxOutSet(List)
+     * @param addresses
+     * @return
+     * @throws GenericRpcException
+     */
+    public UtxoSet scanTxOutSetAddresses(List<String> addresses) throws GenericRpcException;
+
+    /**
+     * Convenience method for retrieving UTXO SET (P2PK, P2PKH, P2WPKH, and
+     * P2SH-P2WPKH outputs) for a given pubkey.
+     *
+     * <pubkey> either refers to a fixed public key in hexadecimal notation, or to
+     * an xpub/xprv optionally followed by one or more path elements separated by
+     * "/", and optionally ending in "/*" (unhardened), or "/*'" or "/*h" (hardened)
+     * to specify all unhardened or hardened child keys.
+     *
+     * @see #scanTxOutSet(List)
+     * @param pubkey
+     * @param range
+     * @return
+     * @throws GenericRpcException
+     */
+    public UtxoSet scanTxOutSetPubKey(String pubkey, int range) throws GenericRpcException;
 
     /**
      * The estimatefee RPC estimates the transaction fee per kilobyte that needs to be paid for a transaction to be included within a certain number of blocks.
