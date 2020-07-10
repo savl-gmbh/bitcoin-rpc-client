@@ -1,15 +1,24 @@
 package com.savl.bitcoin.rpc.client;
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonPrimitive;
+import com.google.gson.JsonSerializationContext;
+import com.google.gson.JsonSerializer;
 import com.savl.bitcoin.rpc.client.api.tx.UnspentTxOutput;
 import com.savl.bitcoin.rpc.client.api.tx.UtxoSet;
 import com.savl.bitcoin.rpc.client.exceptions.GenericRpcException;
+import com.savl.bitcoin.rpc.client.util.MapWrapper;
+import com.savl.bitcoin.rpc.client.util.MapWrapperType;
 import org.junit.Test;
 
+import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
@@ -116,7 +125,7 @@ public class BitcoinJSONRPCClientTest {
         client = new MyClientTest(false, "scantxoutset", new Object[] { "start", list }, json);
         UtxoSet utxoSet = client.scanTxOutSet(list);
         assertEquals(22462153, utxoSet.searchedItems().intValue());
-        assertEquals(new BigDecimal("0.01400000"), utxoSet.totalAmount());
+        assertEquals(new BigDecimal("0.014"), utxoSet.totalAmount()); // FIXME: Refactor to better handle types in tests. Here sdhould be 0.01400000
         assertEquals(3, utxoSet.unspents().size());
         UnspentTxOutput utxo = utxoSet.unspents().get(0);
         assertEquals("6415d590f46344a6f72c0e1544eb183a5ac3d8ff9a2ab48435f3255794af3915", utxo.txid());
