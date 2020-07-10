@@ -1200,12 +1200,12 @@ public interface BitcoindRpcClient {
     /**
      * The signmessage RPC signs a message with the private key of an address.
      *
-     * @param adress  A P2PKH address whose private key belongs to this wallet
+     * @param address  A P2PKH address whose private key belongs to this wallet
      * @param message The message to sign
      * @return The signature of the message, encoded in base64.
      * See <a href="https://bitcoin.org/en/developer-reference#signmessage">signmessage</a>
      */
-    String signMessage(String adress, String message);
+    String signMessage(String address, String message);
 
     /**
      * The walletpassphrase RPC stores the wallet decryption key in memory for the indicated number of seconds.
@@ -1230,7 +1230,7 @@ public interface BitcoindRpcClient {
      <li>sh(multi(&lt;n&gt;,&lt;pubkey&gt;,&lt;pubkey&gt;,...)) P2SH-multisig outputs for the given threshold and pubkeys</li>
      </ul>
      *
-     * In the above, <pubkey> either refers to a fixed public key in hexadecimal notation, or to an xpub/xprv optionally followed by one
+     * In the above, pubkey either refers to a fixed public key in hexadecimal notation, or to an xpub/xprv optionally followed by one
      * or more path elements separated by "/", and optionally ending in "/*" (unhardened), or "/*'" or "/*h" (hardened) to specify all
      * unhardened or hardened child keys.
      * In the latter case, a range needs to be specified by below if different from 1000.
@@ -1274,7 +1274,7 @@ public interface BitcoindRpcClient {
      * Convenience method for retrieving UTXO SET (P2PK, P2PKH, P2WPKH, and
      * P2SH-P2WPKH outputs) for a given pubkey.
      *
-     * <pubkey> either refers to a fixed public key in hexadecimal notation, or to
+     * pubkey either refers to a fixed public key in hexadecimal notation, or to
      * an xpub/xprv optionally followed by one or more path elements separated by
      * "/", and optionally ending in "/*" (unhardened), or "/*'" or "/*h" (hardened)
      * to specify all unhardened or hardened child keys.
